@@ -1,80 +1,105 @@
-# 🏎️ RL-Based Racecar Web Visualizer
+# Evolutionary Reinforcement Learning based RaceCar Simulation
 
-A real-time web visualizer for a Reinforcement Learning (RL) agent learning to drive a racecar on a custom track. The project features a Python backend running the physics simulation and a polished JavaScript frontend for 3D-styled visualization.
+This repository implements a hybrid control architecture for autonomous agents in a continuous environment, combining **On-Policy Temporal Difference Learning (SARSA)** with **Genetic Algorithms (GA)**.
 
-## 🌟 Features
+## 📖 Theoretical Framework
 
-- **Real-Time Simulation**: Backend physics engine (Pygame) running a genetic algorithm/SARSA based agent.
-- **Web Visualization**: Smooth HTML5 Canvas rendering with a "Professional 3D" aesthetic.
-- **Active LIDAR Rays**: Visualizes what the agent sees with dynamic color-coded sensor beams and impact markers.
-- **Car Trails & Crash Effects**: Path tracking and particle explosions for crashes.
-- **Speed Control**: Adjustable simulation speed (1x - 50x) via the frontend slider.
-- **Learning Agents**: Watch the cars evolve from crashing into walls to driving perfect laps over generations.
+### Problem Formulation
 
-## 🛠️ Tech Stack
+The environment is modeled as a Partially Observable Markov Decision Process (POMDP) where the agent aims to maximize distance traveled $\sum_{t=0}^{T} d_t$ within a racing track environment.
 
-- **Backend**: Python, Flask, Flask-SocketIO, Pygame (Headless), Numpy.
-- **Frontend**: HTML5, CSS3, JavaScript (Socket.IO Client).
-- **Deployment**: Ready for Render, Heroku, or other container-based platforms.
+- **State Space $\mathcal{S}$**: 6-dimensional tuple $(d_1, d_2, d_3, d_4, d_5, v)$, where $d_i$ represents discretized LIDAR sensor distances and $v$ is the agent's velocity.
+- **Action Space $\mathcal{A}$**: Discrete set of control tuples $(\delta, \tau)$, where $\delta$ is steering angle and $\tau$ is throttle.
+- **Reward Function $R(s,a)$**:
+  $$R = (v \cdot \lambda) - \beta \cdot |p_{center}| - \eta \cdot \mathbb{I}_{crash}$$
+  Where $\lambda$ rewards speed, $\beta$ penalizes deviation from the centerline $p_{center}$, and $\eta$ is a large penalty for collision.
 
-## 🚀 How to Run Locally
+### 1. Lifetime Learning: SARSA
 
-1.  **Clone the repository**:
+Agents utilize SARSA (State-Action-Reward-State-Action) to approximate the optimal value function $Q^*(s,a)$. Unlike Q-Learning, SARSA is an **on-policy** algorithm, meaning it updates the Q-value based on the action actually executed by the policy, incorporating the agent's exploration noise into the learning process.
 
-    ```bash
-    git clone <your-repo-url>
-    cd RL_Racecar
-    ```
+**Update Rule:**
+$$Q(S_t, A_t) \leftarrow Q(S_t, A_t) + \alpha [R_{t+1} + \gamma Q(S_{t+1}, A_{t+1}) - Q(S_t, A_t)]$$
 
-2.  **Create and activate a virtual environment**:
+This component enables the agent to develop reactive behaviors (avoidance reflexes) within a single generation.
 
-    ```bash
-    python -m venv .venv
-    # Windows
-    .venv\Scripts\activate
-    # Mac/Linux
-    source .venv/bin/activate
-    ```
+### 2. Generational Optimization: Genetic Algorithm
 
-3.  **Install dependencies**:
+To navigate the non-convex optimization landscape and avoid local optima (e.g., safe but static policies), the system employs an evolutionary outer loop.
 
-    ```bash
-    pip install -r requirements.txt
-    ```
+- **Selection**: Truncation selection retains the top $k$% of agents based on total distance traveled.
+- **Crossover & Mutation**: Selected agents are cloned to repopulate the environment.
+  - **Weight Perturbation**: $Q'(s,a) = Q(s,a) + \mathcal{N}(0, \sigma)$
+  - **Hyperparameter Drift**: $\epsilon' = \epsilon + \mathcal{U}(-\delta, \delta)$
 
-4.  **Run the web server**:
+This component optimizes global strategy and hyperparameters over successive generations.
 
-    ```bash
-    python web_server.py
-    ```
+---
 
-5.  **View the Simulation**:
-    Open your browser and navigate to `http://localhost:5001`.
+## 🛠️ Implementation Details
 
-## 🧠 How It Works: The Algorithm
+The architecture is decoupled into a headless physics backend and a decoupled visualization frontend.
 
-This project uses a **Hybrid Evolutionary Reinforcement Learning** approach, combining **SARSA** (on-policy TD learning) with a **Genetic Algorithm**.
+### Backend (Python/Pygame)
 
-### 1. SARSA (State-Action-Reward-State-Action)
+The core simulation runs on a headless `pygame` instance.
 
-During the race, each car acts as an independent agent learning in real-time.
+- **Physics**: Rigid body dynamics with simple friction and momentum.
+- **Sensor Simulation**: Ray-casting implementation for LIDAR emulation.
+- **Agent Logic**: `SarsaAgent` class implements the tabular RL and epsilon-greedy policies.
 
-- **State**: The agent perceives the track using 5 LIDAR rays (distances) and its current speed.
-- **Action**: It chooses steering (Left, Right, Straight) and throttle (Accelerate, Brake) based on its Q-table.
-- **Learning**: At every time step, the agent updates its Q-values using the SARSA update rule:
-  $$Q(S, A) \leftarrow Q(S, A) + \alpha [R + \gamma Q(S', A') - Q(S, A)]$$
-  This allows the car to immediately learn from mistakes (e.g., hitting a wall) and successes (driving fast) within its own lifetime.
+### Frontend (JavaScript/Canvas)
 
-### 2. Genetic Algorithm (Evolution)
+Real-time state visualization via WebSocket connection.
 
-To prevent agents from getting stuck in local optima, we apply evolutionary pressure at the end of each generation (when all cars crash or time runs out):
+- **Rendering**: HTML5 Canvas with custom transformation matrices for pseudo-3D perspective.
+- **Communication**: `Flask-SocketIO` event emitters synchronize state at 30Hz.
 
-- **Selection**: The top performing cars (based on distance traveled) are selected as "parents".
-- **Elitism**: The absolute best agent is carried over unchanged to the next generation to ensure performance never regresses.
-- **Mutation**: New agents are created by cloning the parents and slightly mutating their "brains" (exploration parameters or Q-values).
+### Project Structure
 
-This combination allows for rapid convergence: **SARSA** fine-tunes driving behavior frame-by-frame, while **Evolution** discovers better overall driving strategies over generations.
+```bash
+RL_Racecar/
+├── web_server.py       # Simulation Loop & WebSocket Handler
+├── agent.py            # SARSA Implementation & Q-Table Management
+├── car.py              # Physics & Sensor Ray-casting
+├── track.py            # Collision Masks & Geometry
+└── web_viz/            # Frontend Client
+```
 
-## 🎮 Controls
+---
 
-- **Speed Slider**: Drag the slider at the top of the screen to speed up training (up to 50x) or slow it down for inspection.
+## Usage
+
+### Prerequisites
+
+- Python 3.8+
+
+### Setup & Run
+
+```bash
+# 1. Clone & Env Setup
+git clone <repo_url>
+cd RL_Racecar
+python -m venv .venv
+source .venv/bin/activate  # or .venv\Scripts\activate on Windows
+
+# 2. Install Dependencies
+pip install -r requirements.txt
+
+# 3. Execution
+python web_server.py
+```
+
+Access the dashboard at **`http://localhost:5001`**.
+
+### Controls
+
+- **Speed Slider**: Adjusts physics steps per rendering frame (up to 50x).
+- **Reset**: Manually triggers a hard reset of the population and Q-tables.
+
+---
+
+## Credits
+
+**Developer**: Debmalya Paul
+- **GitHub**: [@debmalya123-debug](https://github.com/debmalya123-debug)
