@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RL based Racecar</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <h1 style="margin-bottom: 20px;">Reinforcement Learning Racecar</h1>
+        
+        <!-- Caution -->
+        <div class="caution-card">
+            <strong>⚠️ Note:</strong> 
+            Proper driving behavior (cornering without walls) typically emerges around Generation 150. Initial generations will crash often as they explore.
+        </div>
+
+        <!-- Main Layout: Canvas + Log -->
+        <div class="main-layout">
+            
+            <!-- Left: Simulation -->
+            <div class="canvas-container">
+                <!-- HUD -->
+                <div class="hud width-constraint" style="position: relative; top: 0; margin-bottom: 15px;">
+                    
+                    <div class="stat-group">
+                        <div class="stat-badge">Gen: <span id="gen-count">1</span></div>
+                        <div class="stat-badge">Alive: <span id="alive-count">0</span></div>
+                    </div>
+                    
+                    <div class="controls">
+                        <button id="restartBtn" class="restart-btn" title="Hard Reset">↺</button>
+                        <button id="pauseBtn" class="pause-btn" title="Play/Pause">⏸</button>
+                        <label for="speedRange" style="margin-right: 5px;">Speed:</label>
+                        <span id="speedVal" style="width: 30px; display:inline-block; font-weight:bold;">1x</span>
+                        <input type="range" id="speedRange" min="1" max="50" value="1">
+                    </div>
+                </div>
+
+                <div class="canvas-wrapper">
+                    <canvas id="raceCanvas" width="800" height="600"></canvas>
+                    <!-- 3D Overlay/Scanlines/Vignette -->
+                    <div class="scanlines"></div>
+                </div>
+            </div>
+
+            <!-- Right: Log -->
+            <div class="log-panel">
+                <div class="log-header">
+                    <span>Performance Log</span>
+                    <span style="font-size: 11px; color: #636e72;">Scrollable ⬇</span>
+                </div>
+                <div class="log-table-wrapper">
+                    <table class="log-table">
+                        <thead>
+                            <tr>
+                                <th>Gen</th>
+                                <th>Best Dist</th>
+                                <th>Epsilon</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logBody">
+                            <!-- Rows added by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+    
+    <div class="info-section">
+        <!-- Card 1: Theory -->
+        <div class="card">
+            <h2>RL Theory: SARSA</h2>
+            <p>The car is an agent that learns through <strong>Trial & Error</strong>. It doesn't know physics strategies. It only knows:</p>
+            <div class="flow-diagram">
+                <div class="node">👀 See<br><span>(LIDAR)</span></div>
+                <div class="arrow">➡</div>
+                <div class="node">🧠 Think<br><span>(Q-Table)</span></div>
+                <div class="arrow">➡</div>
+                <div class="node">🏎️ Act<br><span>(Steer)</span></div>
+            </div>
+            <p style="margin-top:15px; font-size:13px;">
+                If it crashes, it receives a <strong>Negative Reward</strong> and updates its memory to avoid that action in the future.
+            </p>
+        </div>
+
+        <!-- Card 2: Valid Visual -->
+        <div class="card">
+            <h2>The Update Equation</h2>
+            <div class="equation">
+                Q(S,A) <span class="eq-op">+=</span> α * (<span class="highlight">R</span> + γQ' - Q)
+            </div>
+            <ul class="legend">
+                <li><span class="dot red"></span> <strong>R (Reward):</strong> Feedback (+Speed, -Crash)</li>
+                <li><span class="dot blue"></span> <strong>Q(S,A):</strong> Expected Value of Action</li>
+                <li><span class="dot green"></span> <strong>α (Alpha):</strong> Learning Rate</li>
+            </ul>
+            <p style="margin-top:10px; font-size:12px; color:#b2bec3; font-style:italic;">
+                *Over generations, the Q-values converge to the optimal driving strategy.*
+            </p>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
