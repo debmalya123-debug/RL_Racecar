@@ -18,20 +18,28 @@ body {
     width: 100%;
     max-width: 900px;
     margin-top: 40px;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: 25px;
     opacity: 0;
     animation: fadeIn 0.8s forwards 0.5s;
+    margin-bottom: 50px;
 }
 
 .card {
+    flex: 1 1 300px; /* Flex basis for responsiveness */
+    max-width: 420px; /* Uniform max width */
     background: #fff;
     padding: 25px;
     border-radius: 12px;
     box-shadow: 0 10px 40px rgba(0,0,0,0.06);
-    border: 1px solid #fff;
+    border: 1px solid #dae1e7;
     transition: transform 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Center content internally */
+    text-align: center;
 }
 .card:hover { transform: translateY(-5px); }
 
@@ -154,19 +162,6 @@ canvas {
     width: 100%;
 }
 
-/* Generation Log Panel (Wide & Below) */
-.log-panel {
-    width: 100%;
-    max-width: 900px;
-    height: 300px; 
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    border: 1px solid #dae1e7;
-}
 
 .log-header {
     background: #f8f9fa;
@@ -318,4 +313,36 @@ h1 {
     flex-direction: column;
     align-items: center;
     width: 100%;
+}
+
+/* --- DASHBOARD GRID --- */
+.dashboard {
+    display: grid;
+    grid-template-columns: 300px 1fr; /* Table fixed width, Chart flex */
+    gap: 20px;
+    width: 100%;
+    margin-top: 10px;
+}
+
+.log-panel {
+    /* Removed fixed dimensions, controlled by grid */
+    height: 300px; 
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid #dae1e7;
+}
+
+.chart-panel {
+    height: 300px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid #dae1e7;
 }

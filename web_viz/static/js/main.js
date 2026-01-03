@@ -74,17 +74,86 @@ socket.on('pause_state', (data) => {
 });
 
 socket.on('gen_log', (data) => {
-    // Add row to log
+    // 1. Update Table
     const row = document.createElement('tr');
     row.innerHTML = `
         <td>${data.generation}</td>
         <td>${data.distance}</td>
         <td>${data.epsilon}</td>
     `;
-    // Prepend to see latest on top, or Append? 
-    // Usually logs append. But scrolling to bottom is annoying if it's long.
-    // Let's prepend (Latest First).
     logBody.insertBefore(row, logBody.firstChild);
+    
+    // 2. Update Chart
+    if (perfChart) {
+        perfChart.data.labels.push(data.generation);
+        perfChart.data.datasets[0].data.push(data.distance);
+        perfChart.data.datasets[1].data.push(data.epsilon);
+        perfChart.update();
+    }
+});
+
+socket.on('hard_reset', (data) => {
+    generation = data.generation;
+    genEl.innerText = generation;
+    // Clear trails
+    for (let key in trails) trails[key] = [];
+    particles = [];
+    // Clear Log
+    logBody.innerHTML = ''; 
+    // Clear Chart
+    if (perfChart) {
+        perfChart.data.labels = [];
+        perfChart.data.datasets[0].data = [];
+        perfChart.data.datasets[1].data = [];
+        perfChart.update();
+    }
+});
+
+// --- CHART INIT ---
+const perfChartCtx = document.getElementById('perfChart').getContext('2d');
+const perfChart = new Chart(perfChartCtx, {
+    type: 'line',
+    data: {
+        labels: [],
+        datasets: [{
+            label: 'Best Distance',
+            borderColor: '#ff7675',
+            backgroundColor: 'rgba(255, 118, 117, 0.2)',
+            data: [],
+            yAxisID: 'y',
+            tension: 0.3
+        }, {
+            label: 'Epsilon (Exploration)',
+            borderColor: '#74b9ff',
+            backgroundColor: 'rgba(116, 185, 255, 0.2)',
+            data: [],
+            yAxisID: 'y1',
+            tension: 0.3,
+            borderDash: [5, 5]
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+            mode: 'index',
+            intersect: false,
+        },
+        scales: {
+            y: {
+                type: 'linear',
+                display: true,
+                position: 'left',
+                grid: { color: '#f1f2f6' }
+            },
+            y1: {
+                type: 'linear',
+                display: true,
+                position: 'right',
+                grid: { drawOnChartArea: false }
+            }
+        }
+    }
 });
 
 // --- CONTROLS ---

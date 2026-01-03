@@ -126,15 +126,40 @@ def reset_generation():
     # Notify frontend of reset
     socketio.emit('reset', {'generation': generation})
 
-def run_simulation():
-    global alive, steps, generation, reset_signal
-    print("Simulation Thread Started")
+# Threading Control
+sim_thread = None
+sim_instance_id = 0
+
+def start_simulation_thread():
+    global sim_thread, sim_instance_id
+    
+    # Increment ID to invalidate old threads
+    sim_instance_id += 1
+    current_id = sim_instance_id
+    
+    if sim_thread and sim_thread.is_alive():
+        print("Stopping old simulation thread...")
+        # Old thread will die when it sees ID mismatch
+    
+    print(f"Starting Simulation Thread ID: {current_id}")
+    sim_thread = threading.Thread(target=run_simulation, args=(current_id,))
+    sim_thread.daemon = True
+    sim_thread.start()
+
+def run_simulation(my_id):
+    global alive, steps, generation, reset_signal, sim_instance_id
+    print(f"Thread {my_id} Running")
     
     prev_states = [None] * POP_SIZE
     prev_actions = [None] * POP_SIZE
 
     try:
         while True:
+            # --- ZOMBIE CHECK ---
+            if my_id != sim_instance_id:
+                print(f"Thread {my_id} stopping (Superceded by {sim_instance_id})")
+                return
+
             # --- Hard Reset Handling (Thread Safe) ---
             if reset_signal:
                 perform_hard_reset()
@@ -154,8 +179,8 @@ def run_simulation():
             
             # --- Multi-Step Physics Loop for Speed ---
             for _ in range(steps_per_frame):
-                # Check for interrupt
-                if reset_signal:
+                # Check for interrupt or Zombie
+                if reset_signal or my_id != sim_instance_id:
                     break
                     
                 if alive == 0 or steps >= max_steps:
@@ -230,6 +255,8 @@ def run_simulation():
                     prev_actions[i] = action
             
             # --- Prepare Data for Frontend (Once per frame) ---
+            if my_id != sim_instance_id: return
+
             sim_data = []
             for i, car in enumerate(cars):
                  crashed = getattr(car, 'crashed_this_frame', False)
@@ -253,7 +280,7 @@ def run_simulation():
             time.sleep(1/30) # 30 updates per second for visuals is enough
 
     except Exception as e:
-        print(f"Simulation Error: {e}")
+        print(f"Simulation Error (Thread {my_id}): {e}")
         traceback.print_exc()
 
 @app.route('/')
@@ -261,6 +288,6 @@ def index():
     return render_template('index.html')
 
 if __name__ == '__main__':
-    socketio.start_background_task(run_simulation)
+    start_simulation_thread()
     print("Starting Web Server on port 5001...")
     socketio.run(app, debug=True, host='0.0.0.0', port=5001)
