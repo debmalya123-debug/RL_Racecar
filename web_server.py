@@ -290,4 +290,4 @@ def index():
 if __name__ == '__main__':
     start_simulation_thread()
     print("Starting Web Server on port 5001...")
-    socketio.run(app, debug=True, host='0.0.0.0', port=5001)
+    socketio.run(app, debug=True, host='0.0.0.0', port=5001, allow_unsafe_werkzeug=True)
