@@ -8,11 +8,16 @@ This repository implements a hybrid control architecture for autonomous agents i
 
 The environment is modeled as a Partially Observable Markov Decision Process (POMDP) where the agent aims to maximize distance traveled $\sum_{t=0}^{T} d_t$ within a racing track environment.
 
-- **State Space $\mathcal{S}$**: 6-dimensional tuple $(d_1, d_2, d_3, d_4, d_5, v)$, where $d_i$ represents discretized LIDAR sensor distances and $v$ is the agent's velocity.
-- **Action Space $\mathcal{A}$**: Discrete set of control tuples $(\delta, \tau)$, where $\delta$ is steering angle and $\tau$ is throttle.
-- **Reward Function $R(s,a)$**:
-  $$R = (v \cdot \lambda) - \beta \cdot |p_{center}| - \eta \cdot \mathbb{I}_{crash}$$
-  Where $\lambda$ rewards speed, $\beta$ penalizes deviation from the centerline $p_{center}$, and $\eta$ is a large penalty for collision.
+* **State Space $\mathcal{S}$**: 6-dimensional tuple $(d_1, d_2, d_3, d_4, d_5, v)$, where $d_i$ represents discretized LIDAR sensor distances and $v$ is the agent's velocity.
+* **Action Space $\mathcal{A}$**: Discrete set of control tuples $(\delta, \tau)$, where $\delta$ is steering angle and $\tau$ is throttle.
+* **Reward Function $R(s,a)$**:
+
+$$R = (v \cdot \lambda) - \beta \cdot |p_{\text{center}}| - \eta \cdot \mathbb{I}_{\text{crash}}$$
+
+Where:
+* $\lambda$ rewards speed.
+* $\beta$ penalizes deviation from the centerline $p_{\text{center}}$.
+* $\eta$ is a large penalty for collision.
 
 ### 1. Lifetime Learning: SARSA
 
